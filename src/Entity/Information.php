@@ -4,7 +4,9 @@ namespace App\Entity;
 
 use App\Repository\InformationRepository;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Doctrine\ORM\Mapping as ORM;
+
 
 #[ORM\Entity(repositoryClass: InformationRepository::class)]
 class Information
@@ -15,27 +17,35 @@ class Information
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["user.show"])]
     private ?string $town = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["user.show"])]
     private ?string $city = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["user.show"])]
     private ?string $phone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["user.show"])]
     private ?string $openday = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["user.show"])]
     private ?string $closedday = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE, nullable: true)]
+    #[Groups(["user.show"])]
     private ?\DateTime $openhour = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE, nullable: true)]
+    #[Groups(["user.show"])]
     private ?\DateTime $closedhour = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["user.show"])]
     private ?string $exception = null;
 
     #[ORM\ManyToOne(inversedBy: 'information')]

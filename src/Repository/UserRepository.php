@@ -8,6 +8,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 /**
  * @extends ServiceEntityRepository<User>
@@ -33,28 +34,38 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
-    //    /**
-    //     * @return User[] Returns an array of User objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('u.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function listingUserWhithFilter(
+        ?String $domain = null, 
+        ?String $category = null, 
+        ?String $subCategory = null, 
+        ?int $page = 1, 
+        ?int $lim = 2): Paginator
+    {
+        $query = $this->createQueryBuilder('u')
+            ->join('u.subCategories', 'sc')
+            ->addSelect('sc');
+        if($domain){
+            $query->join('sc.category', 'category')
+                ->join('category.domain', "domain")
+                ->where("domain.name LIKE :domaine")
+                ->setParameter("domaine", "%".$domain."%");
+        };
 
-    //    public function findOneBySomeField($value): ?User
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if($category) {
+            $query->join('sc.category', 'category')
+                ->where("category.name LIKE :category")
+                ->setParameter("category", "%".$category."%");
+        };
+
+        if($subCategory) {
+            $query->where('sc.name LIKE :subcategory')
+                ->setParameter("subcategory", "%".$subCategory."%");
+        };
+        $query->orderBy("u.id", "ASC")
+            ->setFirstResult(($page - 1) * $lim)
+            ->setMaxResults($lim)
+            ->setHint(Paginator::HINT_ENABLE_DISTINCT, false);
+        return new Paginator($query->getQuery());
+    }
+
 }

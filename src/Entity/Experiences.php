@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ExperiencesRepository;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ExperiencesRepository::class)]
@@ -15,18 +16,23 @@ class Experiences
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["user.show"])]
     private ?string $title = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["user.show"])]
     private ?string $post = null;
 
     #[ORM\Column]
+    #[Groups(["user.show"])]
     private ?int $begin = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(["user.show"])]
     private ?int $end = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(["user.show"])]
     private ?string $description = null;
 
     #[ORM\ManyToOne(inversedBy: 'experiences')]

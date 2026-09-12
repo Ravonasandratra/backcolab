@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -16,13 +17,25 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+
+    public function __construct()
+    {
+        $this->information = new ArrayCollection();
+        $this->experiences = new ArrayCollection();
+        $this->formation = new ArrayCollection();
+        $this->skills = new ArrayCollection();
+        $this->subCategories = new ArrayCollection();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["user.show", "user.listing"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
     #[Assert\Email]
+    #[Groups(["user.show", "user.postable"])]
     private string $email;
 
     /**
@@ -35,40 +48,70 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Groups(["user.postable"])]
+    #[Assert\Length(min: 8, max: 50)]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\Length(min: 3)]
+    #[Groups(["user.show", "user.listing", "user.postable"])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\Length(min: 3)]
+    #[Groups(["user.show", "user.listing", "user.postable"])]
     private ?string $lastname = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Image()]
+    #[Groups(["user.show", "user.listing", "user.postable"])]
     private ?string $avatar = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["user.show", "user.listing", "user.postable"])]
     private ?string $phone = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    
+    #[Groups(["user.show", "user.postable"])]
+    #[Assert\Length(min: 5)]
     private ?string $description = null;
 
     /**
      * @var Collection<int, Information>
      */
     #[ORM\OneToMany(targetEntity: Information::class, mappedBy: 'user')]
+    #[Groups(["user.show"])]
     private Collection $information;
 
     /**
      * @var Collection<int, Experiences>
      */
     #[ORM\OneToMany(targetEntity: Experiences::class, mappedBy: 'user')]
+    #[Groups(["user.show"])]
     private Collection $experiences;
 
-    public function __construct()
-    {
-        $this->information = new ArrayCollection();
-        $this->experiences = new ArrayCollection();
-    }
+    /**
+     * @var Collection<int, Formations>
+     */
+    #[ORM\OneToMany(targetEntity: Formations::class, mappedBy: 'user')]
+    #[Groups(["user.show"])]
+    private Collection $formation;
+
+    /**
+     * @var Collection<int, Skill>
+     */
+    #[ORM\OneToMany(targetEntity: Skill::class, mappedBy: 'user')]
+    #[Groups(["user.show"])]
+    private Collection $skills;
+
+    /**
+     * @var Collection<int, SubCategory>
+     */
+    #[ORM\ManyToMany(targetEntity: SubCategory::class, mappedBy: 'user')]
+    #[Groups(["user.show", "user.listing"])]
+    private Collection $subCategories;
+
 
     public function getId(): ?int
     {
@@ -260,6 +303,93 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             if ($experience->getUser() === $this) {
                 $experience->setUser(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Formations>
+     */
+    public function getFormation(): Collection
+    {
+        return $this->formation;
+    }
+
+    public function addFormation(Formations $formation): static
+    {
+        if (!$this->formation->contains($formation)) {
+            $this->formation->add($formation);
+            $formation->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFormation(Formations $formation): static
+    {
+        if ($this->formation->removeElement($formation)) {
+            // set the owning side to null (unless already changed)
+            if ($formation->getUser() === $this) {
+                $formation->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    public function getSkills(): Collection
+    {
+        return $this->skills;
+    }
+
+    public function addSkill(Skill $skill): static
+    {
+        if (!$this->skills->contains($skill)) {
+            $this->skills->add($skill);
+            $skill->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSkill(Skill $skill): static
+    {
+        if ($this->skills->removeElement($skill)) {
+            // set the owning side to null (unless already changed)
+            if ($skill->getUser() === $this) {
+                $skill->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, SubCategory>
+     */
+    public function getSubCategories(): Collection
+    {
+        return $this->subCategories;
+    }
+
+    public function addSubCategory(SubCategory $subCategory): static
+    {
+        if (!$this->subCategories->contains($subCategory)) {
+            $this->subCategories->add($subCategory);
+            $subCategory->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSubCategory(SubCategory $subCategory): static
+    {
+        if ($this->subCategories->removeElement($subCategory)) {
+            $subCategory->removeUser($this);
         }
 
         return $this;
