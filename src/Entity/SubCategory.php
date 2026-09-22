@@ -14,13 +14,15 @@ class SubCategory
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["subcategory.show"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["user.show", "user.listing"])]
+    #[Groups(["user.show", "user.listing","subcategory.show"])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'subCategories')]
+    #[Groups(["subcategory.show"])]
     private ?Category $category = null;
 
     /**

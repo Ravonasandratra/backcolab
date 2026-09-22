@@ -5,7 +5,6 @@ namespace App\Controller\API\public;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Bundle\FrameworkBundle\DependencyInjection\Compiler\JsonPathPass;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -28,7 +27,7 @@ final class UsersController extends AbstractController
         $category = $request->query->get("category");
         $subCategory = $request->query->get("subCategory");
         $page = $request->query->get("page");
-        $limit = 2;
+        $limit = 10;
         $page = 1;
 
         if($page && $page < 1) {
@@ -42,7 +41,7 @@ final class UsersController extends AbstractController
             $domain = null;
         };
 
-        $users = $userRepository->listingUserWhithFilter(domain: $domain, category: $category, subCategory: $subCategory, page: $page);
+        $users = $userRepository->listingUserWhithFilter(domain: $domain, category: $category, subCategory: $subCategory, page: $page, lim: 10);
 
         return $this->json($users, 200, [], [
             "groups" => ["user.listing"],
@@ -64,5 +63,4 @@ final class UsersController extends AbstractController
     {
         return $this->json($user);
     }
-
 }

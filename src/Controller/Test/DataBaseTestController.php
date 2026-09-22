@@ -10,6 +10,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\SubCategoryRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\TryCatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -539,6 +540,8 @@ TEXT;
             },json_decode($expers_data, true)
         );
         foreach ($users->findAll() as $user) {
+
+            
             $exper = $serializer->deserialize(json_encode($expers[random_int(0, count($expers)-1)]), Experiences::class, 'json');
             $user->addExperience($exper);
             $entityManager->persist($exper);
@@ -580,27 +583,35 @@ TEXT;
         ]);
     }
 
-//    #[Route('/test/subcat', name: 'test_subcat')]
+    //#[Route('/test/subcat', name: 'test_subcat')]
     public function subcat(UserRepository $users,
-                          SubCategoryRepository $category,
+                          SubCategoryRepository $subcategory,
                           CategoryRepository $categoryRepository,
                           EntityManagerInterface $entityManager): Response
     {
-      $category_data = $category->findAll();
+      $subcategory_data = $subcategory->findAll();
       $rand = [1, 2, 4, 3, 4, 5, 6, 7, 8, 9, 10];
       foreach ($users->findAll() as $user) {
-        $randDomaine = $rand[random_int(0, count($rand) - 1)];
-        $domaine = array_filter($category_data, fn($value) => $value->getCategory() === $categoryRepository->find($randDomaine));
-        for ($i = 0; $i < 3; $i++) {
-          try {
-            $vraiDomaine = $domaine[random_int(0, count($domaine) - 1)];
-            $user->addSubCategory($vraiDomaine);
-            $entityManager->persist($vraiDomaine);
-            $entityManager->flush();
-          } catch(\Throwable $th) {
-
+        $randcategoryid = $rand[random_int(0, count($rand) - 1)];
+        $domaine = array_filter($subcategory_data, fn($value) => $value->getCategory() === $categoryRepository->find($randcategoryid));
+        $i = 0;
+        if(count($domaine) <= 2) {
+          foreach($domaine as $d) {
+              if($i == 2) break;
+              $user->addSubCategory($d);
+              $entityManager->persist($d);
+              $entityManager->flush();
+              $i++;
           };
-        };
+        }else {
+          foreach($domaine as $d) {
+              if($i == 3) break;
+              $user->addSubCategory($d);
+              $entityManager->persist($d);
+              $entityManager->flush();
+              $i++;
+          };
+        }
       }
 
       return $this->render('test/data_base_test/index.html.twig', [

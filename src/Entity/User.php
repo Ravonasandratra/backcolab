@@ -77,6 +77,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Length(min: 5)]
     private ?string $description = null;
 
+    #[ORM\Column]
+    #[Assert\Type('integer')]
+    #[Assert\Range(min: 1, max: 5)]
+    #[Groups(["user.show"])]
+    private ?int $level = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["user.show"])]
+    private ?string $category = null;
+
     /**
      * @var Collection<int, Information>
      */
@@ -391,6 +401,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->subCategories->removeElement($subCategory)) {
             $subCategory->removeUser($this);
         }
+
+        return $this;
+    }
+
+    public function getLevel(): ?int
+    {
+        return $this->level;
+    }
+
+    public function setLevel(int $level): static
+    {
+        $this->level = $level;
+
+        return $this;
+    }
+
+    public function getCategory(): ?string
+    {
+        return $this->category;
+    }
+
+    public function setCategory(string $category): static
+    {
+        $this->category = $category;
 
         return $this;
     }
