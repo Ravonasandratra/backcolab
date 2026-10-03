@@ -2,7 +2,9 @@
 
 namespace App\Controller\API\public;
 
+use App\Entity\Domain;
 use App\Repository\CategoryRepository;
+use App\Repository\DomaineRepository;
 use App\Repository\SubCategoryRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +28,13 @@ final class ItemMenuController extends AbstractController {
         $category = (int)$request->query->get("category") ?? 1;
         return $this->json($subCategoryRepository->findSubCategoryFromCategory($category), 200, [], [
             "groups" => "subcategory.show"
+        ]);
+    }
+     #[Route('/api/public/domaine', name: 'api_domaine_show', methods: ['GET'])]
+    public function getDomaine(DomaineRepository $domaineRepository): JsonResponse 
+    {
+        return $this->json($domaineRepository->findAll(), 200, [], [
+            "groups" => "domaine.show"
         ]);
     }
 }

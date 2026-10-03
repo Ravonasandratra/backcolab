@@ -10,8 +10,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\SubCategoryRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use PhpParser\Node\Name;
-use PhpParser\Node\Stmt\TryCatch;
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -613,6 +612,25 @@ TEXT;
           };
         }
       }
+
+      return $this->render('test/data_base_test/index.html.twig', [
+            'controller_name' => 'Test/DataBaseTestController',
+        ]);
+    }
+
+    #[Route('/test/avatar', name: 'test_subcat')]
+    public function avatar(UserRepository $users, EntityManagerInterface $entityManager, CacheManager $cache): Response
+    {
+      $avatar = ["Laurent.jpg", "jean.jpg", "mamy.jpg", "marc.jpg", "marie.jpg","michel.jpg", "miora.jpg", "tantely.jpg]"];
+
+      $cache->getBrowserPath("/media/avatar/jean.jpg", "avatar");
+      dd($cache);
+      
+      /*foreach ($users->findAll() as $user) {
+        $user->setAvatar($avatar[random_int(0, 6)]);
+        $entityManager->persist($user);
+        $entityManager->flush();
+      }*/
 
       return $this->render('test/data_base_test/index.html.twig', [
             'controller_name' => 'Test/DataBaseTestController',

@@ -30,7 +30,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["user.show", "user.listing"])]
+    #[Groups(["user.show", "user.listing", "user.profil"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
@@ -42,6 +42,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var list<string> The user roles
      */
     #[ORM\Column]
+    #[Groups(["user.profil"])]
     private array $roles = [];
 
     /**
@@ -54,17 +55,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     #[Assert\Length(min: 3)]
-    #[Groups(["user.show", "user.listing", "user.postable"])]
+    #[Groups(["user.show", "user.listing", "user.postable","user.profil"])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\Length(min: 3)]
-    #[Groups(["user.show", "user.listing", "user.postable"])]
+    #[Groups(["user.show", "user.listing", "user.postable","user.profil"])]
     private ?string $lastname = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Image()]
-    #[Groups(["user.show", "user.listing", "user.postable"])]
+    #[Groups(["user.show", "user.listing", "user.postable","user.profil"])]
     private ?string $avatar = null;
 
     #[ORM\Column(length: 255, nullable: true)]

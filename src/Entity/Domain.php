@@ -14,10 +14,11 @@ class Domain
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["Category.show"])]
+    #[Groups(["Category.show", "domaine.show"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["domaine.show"])]
     private ?string $name = null;
 
     /**
