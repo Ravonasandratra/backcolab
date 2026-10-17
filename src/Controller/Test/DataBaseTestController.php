@@ -4,11 +4,13 @@ namespace App\Controller\Test;
 
 use App\Entity\Experiences;
 use App\Entity\Information;
+use App\Entity\Profil;
 use App\Entity\Skill;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\SubCategoryRepository;
 use App\Repository\UserRepository;
+use App\Service\ServiceGeneretOtp;
 use Doctrine\ORM\EntityManagerInterface;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -618,7 +620,7 @@ TEXT;
         ]);
     }
 
-    #[Route('/test/avatar', name: 'test_subcat')]
+//    #[Route('/test/avatar', name: 'test_subcat')]
     public function avatar(UserRepository $users, EntityManagerInterface $entityManager, CacheManager $cache): Response
     {
       $avatar = ["Laurent.jpg", "jean.jpg", "mamy.jpg", "marc.jpg", "marie.jpg","michel.jpg", "miora.jpg", "tantely.jpg]"];
@@ -630,6 +632,26 @@ TEXT;
         $user->setAvatar($avatar[random_int(0, 6)]);
         $entityManager->persist($user);
         $entityManager->flush();
+      }*/
+
+      return $this->render('test/data_base_test/index.html.twig', [
+            'controller_name' => 'Test/DataBaseTestController',
+        ]);
+    }
+
+    #[Route('/test/profil', name: 'test_subcat')]
+    public function profil(UserRepository $users, EntityManagerInterface $em, ServiceGeneretOtp $service): Response
+    {
+
+    $secret = $service->generateSecret();
+    $code = $service->generateCode($secret);
+
+    dd($code,$secret, $service->verifyCode($secret, $code), $service->verifyCode($secret, "524526"));
+      /*foreach ($users->findAll() as $user) {
+        $profil = new Profil();
+        $profil->setUser($user);
+        $em->persist($profil);
+        $em->flush();
       }*/
 
       return $this->render('test/data_base_test/index.html.twig', [

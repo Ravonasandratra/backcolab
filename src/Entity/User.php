@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -15,6 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[UniqueEntity("email")]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
 
@@ -50,7 +52,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column]
     #[Groups(["user.postable"])]
-    #[Assert\Length(min: 8, max: 50)]
+    #[Assert\Length(min: 8)]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
@@ -88,6 +90,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(["user.show"])]
     private ?string $category = null;
 
+     #[ORM\Column(nullable: true)]
+    private ?bool $isVerified = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(["user.postable"])]
+    private ?bool $isDemanded = null;
+
     /**
      * @var Collection<int, Information>
      */
@@ -122,6 +131,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: SubCategory::class, mappedBy: 'user')]
     #[Groups(["user.show", "user.listing"])]
     private Collection $subCategories;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $isClient = null;
 
 
     public function getId(): ?int
@@ -426,6 +438,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setCategory(string $category): static
     {
         $this->category = $category;
+
+        return $this;
+    }
+
+    public function isVerified(): ?bool
+    {
+        return $this->isVerified;
+    }
+
+    public function setIsVerified(?bool $isVerified): static
+    {
+        $this->isVerified = $isVerified;
+
+        return $this;
+    }
+
+    public function isClient(): ?bool
+    {
+        return $this->isClient;
+    }
+
+    public function setIsClient(?bool $isClient): static
+    {
+        $this->isClient = $isClient;
+
+        return $this;
+    }
+
+    public function isDemanded(): ?bool
+    {
+        return $this->isDemanded;
+    }
+
+    public function setIsDemanded(?bool $isDemanded): static
+    {
+        $this->isDemanded = $isDemanded;
 
         return $this;
     }
