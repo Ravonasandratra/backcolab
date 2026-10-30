@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Formations index{% endblock %}
+
+{% block body %}
+    <h1>Formations index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Title</th>
+                <th>Date</th>
+                <th>School</th>
+                <th>Begin</th>
+                <th>End</th>
+                <th>Description</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for formation in formations %}
+            <tr>
+                <td>{{ formation.id }}</td>
+                <td>{{ formation.title }}</td>
+                <td>{{ formation.date }}</td>
+                <td>{{ formation.school }}</td>
+                <td>{{ formation.begin }}</td>
+                <td>{{ formation.end }}</td>
+                <td>{{ formation.description }}</td>
+                <td>
+                    <a href="{{ path('app_a_p_i_public_formations_show', {'id': formation.id}) }}">show</a>
+                    <a href="{{ path('app_a_p_i_public_formations_edit', {'id': formation.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="8">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_a_p_i_public_formations_new') }}">Create new</a>
+{% endblock %}

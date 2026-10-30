@@ -14,6 +14,7 @@ class Information
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["user.show"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]

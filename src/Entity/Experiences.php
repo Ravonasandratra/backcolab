@@ -6,6 +6,7 @@ use App\Repository\ExperiencesRepository;
 use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ExperiencesRepository::class)]
 class Experiences
@@ -13,26 +14,31 @@ class Experiences
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["user.show"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["user.show"])]
+    #[Groups(["user.show", "experience.post"])]
+    #[Assert\NotBlank()]
     private ?string $title = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["user.show"])]
+    #[Groups(["user.show", "experience.post"])]
+    #[Assert\NotBlank()]
     private ?string $post = null;
 
     #[ORM\Column]
-    #[Groups(["user.show"])]
+    #[Groups(["user.show", "experience.post"])]
+    #[Assert\NotBlank()]
     private ?int $begin = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(["user.show"])]
+    #[Groups(["user.show", "experience.post"])]
     private ?int $end = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(["user.show"])]
+    #[Groups(["user.show", "experience.post"])]
+    #[Assert\NotBlank()]
     private ?string $description = null;
 
     #[ORM\ManyToOne(inversedBy: 'experiences')]

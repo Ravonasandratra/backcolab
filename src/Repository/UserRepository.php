@@ -9,7 +9,6 @@ use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 use Doctrine\ORM\Tools\Pagination\Paginator;
-use Symfony\Bundle\SecurityBundle\Security;
 
 /**
  * @extends ServiceEntityRepository<User>
@@ -35,49 +34,69 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    
     public function listingUserWhithFilter(
-        ?String $domain = null, 
-        ?String $category = null, 
-        ?String $subCategory = null, 
-        ?int $page = 1, 
+        ?string $domain = null,
+        ?string $category = null,
+        ?string $subCategory = null,
+        ?int $page = 1,
         ?int $lim = 2,
-        ?int $currentUser = null
-        ): Paginator
-        
-    {
+        ?int $currentUser = null,
+        ?string $search = null,
+    ): Paginator {
         $query = $this->createQueryBuilder('u');
 
-
-        if($currentUser) {
-            $query->where("u.id != :userId")
-                ->setParameter("userId", $currentUser);
+        if ($currentUser) {
+            $query->andWhere('u.id != :userId')
+                ->setParameter('userId', $currentUser);
         }
 
-        $query->join('u.subCategories', 'sc')->addSelect('sc');
-        if($domain){
-            $query->join('sc.category', 'category')
-                ->join('category.domain', "domain")
-                ->andWhere("domain.name = :domaine")
-                ->setParameter("domaine", $domain);
-        };
+        $query->join('u.subCategories', 'sc')
+            ->addSelect('sc');
 
-        if($category) {
-            $query->join('sc.category', 'category')
-                ->andWhere("category.name = :category")
-                ->setParameter("category", $category);
-        };
+        if ($domain) {
+            $query->join('sc.category', 'cat')
+                ->join('cat.domain', 'dom')
+                ->andWhere('dom.name = :domaine')
+                ->setParameter('domaine', $domain);
+        }
 
-        if($subCategory) {
+        if ($category) {
+            $query->join('sc.category', 'cat')
+                ->andWhere('cat.name = :category')
+                ->setParameter('category', $category);
+        }
+
+        if ($subCategory) {
             $query->andWhere('sc.name = :subcategory')
-                ->setParameter("subcategory", $subCategory);
-        };
-        $query->orderBy("u.id", "ASC")
+                ->setParameter('subcategory', $subCategory);
+        }
+
+        // Recherche par nom ou prénom
+        if ($search !== null && trim($search) !== '') {
+            $search = mb_strtolower(trim($search));
+
+            $query->andWhere(
+                "(
+                    LOWER(CONCAT(u.lastname, CONCAT(' ', u.firstname)))
+                        LIKE :search
+                    OR
+                    LOWER(CONCAT(u.firstname, CONCAT(' ', u.lastname)))
+                        LIKE :search
+                )"
+            )
+            ->setParameter('search', '%' . $search . '%');
+        }
+
+
+        $query->orderBy('u.id', 'ASC')
             ->setFirstResult(($page - 1) * $lim)
             ->setMaxResults($lim)
-            ->setHint(Paginator::HINT_ENABLE_DISTINCT, false);
+            ->setHint(Paginator::HINT_ENABLE_DISTINCT, true);
 
         return new Paginator($query->getQuery());
     }
+
 
     public function searchAccout(String $identity)
     {

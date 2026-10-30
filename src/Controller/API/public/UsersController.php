@@ -3,16 +3,22 @@
 namespace App\Controller\API\public;
 
 use App\DTO\Users\NewUserDTO;
+use App\DTO\Users\PasswordUserResetDTO;
 use App\DTO\Users\VerifyUserOtpDTO;
 use App\Entity\Profil;
 use App\Entity\User;
 use App\Event\MailingVerificationEvent;
 use App\Repository\ProfilRepository;
+use App\Repository\TokenPasswordResetRepository;
 use App\Repository\UserRepository;
 use App\Service\ServiceGenerateOtp;
 use App\Service\ServiceManagerOtp;
+use App\Service\ServiceTokenPasswordReset;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use libphonenumber\PhoneNumberMatch;
+use libphonenumber\PhoneNumberUtil;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +27,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Runtime\ResolverInterface;
+use Symfony\Component\Serializer\Normalizer\NumberNormalizer;
 
 final class UsersController extends AbstractController
 {
@@ -45,7 +51,8 @@ final class UsersController extends AbstractController
 
         $category = $request->query->get("category");
         $subCategory = $request->query->get("subCategory");
-        $page = $request->query->get("page") ?? 1;
+        $search = $request->query->get('search');
+        $page = $request->query->getInt("page", 1);
         $limit = 10;
 
         /** @var User $currentUser */
@@ -63,7 +70,7 @@ final class UsersController extends AbstractController
             $domaine = null;
         };
 
-        $users = $userRepository->listingUserWhithFilter(domain: $domaine, category: $category, subCategory: $subCategory, page: $page, lim: $limit, currentUser: $currentId);
+        $users = $userRepository->listingUserWhithFilter(domain: $domaine, category: $category, subCategory: $subCategory, page: $page, lim: $limit, currentUser: $currentId, search: $search);
 
         return $this->json($users, 200, [], [
             "groups" => ["user.listing"],
@@ -120,58 +127,111 @@ final class UsersController extends AbstractController
 
     #[Route('/api/public/opt/user/{id}/verify', name: 'api_users_opt_verify', methods: ['POST'])]
     public function verify(
-        #[MapRequestPayload()]
+        #[MapRequestPayload]
         VerifyUserOtpDTO $verify,
         Profil $profil,
         ServiceGenerateOtp $generateOtp,
-        EntityManagerInterface $entityManager
-    ): JsonResponse
-    {
-        /** @var User $currentUser */
+        EntityManagerInterface $entityManager,
+        ServiceTokenPasswordReset $serviceToken,
+        JWTTokenManagerInterface $jwtToken
+    ): JsonResponse {
+        /** @var User|null $currentUser */
         $currentUser = $this->getUser();
 
         $user = $profil->getUser();
-        $otp = $profil->getVerificationOtp()[0];
 
-        if(!$otp) {
-            return $this->json(["messages" => "OOPS, Page introuvable"], 404);
+        $otp = $profil->getVerificationOtp()->first();
+
+        if (!$otp) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Aucun code de validation disponible.',
+            ], 404);
         }
 
-        if($otp->getExpiredAt() <= new DateTimeImmutable() || $otp->getAttempts() >= 3) {
-            return $this->json(["refus" => "La code de validation n'est plus disponible!"], 422);
+        // Vérifier que le compte existe.
+        if (!$user) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Utilisateur introuvable.',
+            ], 404);
         }
 
-        if($currentUser && $currentUser->getId() != $user->getId()){
-            return $this->json(["refus" => "Vous ne pouvez modifier cette profil"], 401);
+        // Un utilisateur connecté ne peut pas valider le profil d'un autre.
+        if (
+            $currentUser instanceof User
+            && $currentUser->getId() !== $user->getId()
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez pas modifier ce profil.',
+            ], 403);
         }
 
-        if(!$generateOtp->verifyCode($otp->getSecret(), $verify->code)) {
+        // Vérifier l'expiration et le nombre de tentatives.
+        if (
+            $otp->getExpiredAt() <= new DateTimeImmutable()
+            || $otp->getAttempts() >= 3
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Le code de validation n’est plus disponible.',
+            ], 422);
+        }
 
+        // Vérifier le code OTP.
+        if (!$generateOtp->verifyCode(
+            $otp->getSecret(),
+            $verify->code
+        )) {
             $otp->setAttempts($otp->getAttempts() + 1);
-            $tentative = 3 - $otp->getAttempts();
-            
-            
-            $entityManager->persist($otp);
             $entityManager->flush();
-            return $this->json(["refus" => "Code de validation incorrect, il vous reste de ".$tentative. " tentative!"], 422);
-            
+
+            $remaining = max(0, 3 - $otp->getAttempts());
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Code incorrect.',
+                'remainingAttempts' => $remaining,
+            ], 422);
         }
 
-        if($currentUser && $currentUser->isVerified() && $otp->getNewPwd()) {
+        // CAS 1 : mot de passe oublié.
+        // Fonctionne que l'utilisateur soit connecté ou non.
+        if ($otp->isChangePassword()) {
+            $resetToken = $serviceToken->generateToken($user->getId());
+
             $entityManager->remove($otp);
-            $currentUser->setPassword($otp->getNewPwd());
-            $entityManager->persist($currentUser);
             $entityManager->flush();
-            return $this->json(["succes" => true], 200);
+
+            return $this->json([
+                'success' => true,
+                'token' => $resetToken,
+                "id" => $user->getId()
+            ], 200);
         }
+
+        // CAS 2 : création de compte.
+        // un compte déjà vérifié.
+        if ($user->isVerified()) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Ce compte est déjà vérifié.',
+            ], 422);
+        }
+
+        $user->setIsVerified(true);
 
         $entityManager->remove($otp);
-        $user->setIsVerified(true);
-        $entityManager->persist($user);
         $entityManager->flush();
 
-        return $this->json(["succes" => true], 200);
+        // Retourner directement le JWT après la vérification.
+        return $this->json([
+            'success' => true,
+            'token_jwt' => $jwtToken->create($user),
+        ], 200);
     }
+
 
     #[Route('/api/public/opt/user/{id}/regenerate', name: 'api_users_opt_regenerate', methods: ['GET'])]
     public function regenerate(
@@ -187,7 +247,7 @@ final class UsersController extends AbstractController
         $otp = $profil->getVerificationOtp();
 
         if(!$otp[0]) {
-            return $this->json(["messages" => "OOPS, Page introuvable"], 404);
+            return $this->json(["refus" => "OOPS, Page introuvable"], 404);
         }
 
         if($currentUser && $currentUser->getId() != $user->getId()){
@@ -235,6 +295,62 @@ final class UsersController extends AbstractController
         
         $eventDispatcher->dispatch(new MailingVerificationEvent(["to" => $user["email"], "code" => $code]));
 
-        return $this->json($user);
+        return $this->json(["user" => $user, "id_profil" => $profil->getId()]);
+    }
+
+    #[Route("/api/public/post/user/{id}/resetpassword", name: "api_user_resetpassword", methods:["POST"])]
+    public function ResetPassword(
+        #[MapRequestPayload()]
+        PasswordUserResetDTO $passwordUser,
+        User $user,
+        UserRepository $userRepository,
+        Request $request,
+        TokenPasswordResetRepository $tokenPassword,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $hasher,
+        JWTTokenManagerInterface $jWTToken
+    ): JsonResponse
+    {
+
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+
+        $token = $request->headers->get("X-Reset-Token");
+        $resetToken = $tokenPassword->findOneBy(["hashToken" => hash("sha256", $token)]);
+
+        if(!$resetToken) {
+            return $this->json(["refus" => "Acces non autorisé"], 401);
+        }
+
+        $entityManager->remove($resetToken);
+
+        if($resetToken->getUser() != $user->getId()) {
+            return $this->json(["refus" => "Acces non autorisé"], 401);
+        }
+        
+        if($resetToken->getExpiredAt() >= new DateTimeImmutable() || $resetToken->getUsedAt()) {
+            return $this->json(["refus" => "Acces non autorisé ou temp de validation expiré"], 401);
+        }
+
+        $userRepository->upgradePassword($user, $hasher->hashPassword($user, $passwordUser->confirmedPassword));
+
+        if($currentUser) {
+            return $this->json(["success" => true], 200);
+        }
+
+        return $this->json(
+            [
+                "success" => true, 
+                "token_jwt" => $jWTToken->create($user)
+            ],
+            200
+        );
+    }
+
+    #[Route("/phone", name: "phone", methods: ["GET"])]
+    public function phone() {
+        $phone = PhoneNumberUtil::getInstance();
+
+        dd($phone->parse("261349037823", "MG"));
     }
 }

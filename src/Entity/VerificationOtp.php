@@ -28,8 +28,8 @@ class VerificationOtp
     #[ORM\Column]
     private ?int $attempts = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $newPwd = null;
+    #[ORM\Column(nullable: true)]
+    private ?bool $isChangePassword = null;
 
     public function getId(): ?int
     {
@@ -96,14 +96,14 @@ class VerificationOtp
         return $this;
     }
 
-    public function getNewPwd(): ?string
+    public function isChangePassword(): ?bool
     {
-        return $this->newPwd;
+        return $this->isChangePassword;
     }
 
-    public function setNewPwd(string $newPwd): static
+    public function setIsChangePassword(?bool $isChangePassword): static
     {
-        $this->newPwd = $newPwd;
+        $this->isChangePassword = $isChangePassword;
 
         return $this;
     }

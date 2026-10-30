@@ -27,7 +27,10 @@ security:
             pattern:   ^/api
             stateless: true
             provider: app_user_provider
+            entry_point: jwt
             jwt: ~
+            refresh_jwt:
+                check_path: /api/token/refresh
 
         dev:
             # Ensure dev tools and static assets are always allowed
@@ -60,6 +63,7 @@ security:
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/api/(login|token/refresh), roles: PUBLIC_ACCESS }
 
 when@test:
     security:

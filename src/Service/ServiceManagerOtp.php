@@ -36,8 +36,8 @@ class ServiceManagerOtp {
         
         $otp = new VerificationOtp();
 
-        if($user && $user->isVerified() && $lastOpt && $lastOpt->getNewPwd()) {
-            $otp->setNewPwd($lastOpt->getNewPwd());
+        if($user && $user->isVerified()) {
+            $otp->setIsChangePassword(true);
         }
 
         $otp->setProfil($profil);

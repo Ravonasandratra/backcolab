@@ -19,7 +19,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted("IS_AUTHENTICATED_FULLY")]
 class UsersChangeController extends AbstractController {
-
     public function __construct(
         private readonly CacheManager $cache, 
         private readonly EntityManagerInterface $em,
@@ -85,29 +84,5 @@ class UsersChangeController extends AbstractController {
         return $this->json($currentUser, 200, [], [
             "groups" => ["user.profil"]
         ]);
-    }
-
-    #[Route('/api/public/post/user/{id}/information', name: 'api_user_information', methods: ["POST"], requirements: ["id" => "\d+"])]
-    public function newIfonrmation(
-        #[MapRequestPayload(
-            "json", ["groups" => "information.post"]
-        )]
-        Information $information,
-        Request $request,
-    ): JsonResponse {
-        
-    /** @var User $currentUser */
-        $currentUser = $this->getUser();
-        if($currentUser->getId() != (int)$request->attributes->get("id")){
-            return $this->json(["message" => "Vous ne pouvez modifier cette profil"], 401);
-        }
-
-        $information->setUser($currentUser);
-        $information->setAdress("");
-        
-        $this->em->persist($information);
-        $this->em->flush();
-
-        return $this->json(["success" => true], 200);
     }
 }
