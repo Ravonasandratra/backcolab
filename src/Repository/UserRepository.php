@@ -4,11 +4,12 @@ namespace App\Repository;
 
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use LongitudeOne\Spatial\PHP\Types\Geography\Point;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
-use Doctrine\ORM\Tools\Pagination\Paginator;
 
 /**
  * @extends ServiceEntityRepository<User>
@@ -110,4 +111,44 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ;
     }
 
+   public function findNearByUser(
+        Point $position,
+        ?int $userId,
+        int $radius,
+        int $page = 1,
+        int $limit = 10
+    ): Paginator {
+
+    $wkt = sprintf(
+            "POINT(%F %F)",
+            $position->getX(),
+            $position->getY()
+        );
+
+    $query = $this->createQueryBuilder("u")
+    ->select("u")
+    ->innerJoin("u.information", "i")
+    ->addSelect("i.coordonne coord")
+    ->addSelect(
+        "MIN(
+                ST_Distance_Sphere(
+                    i.coordonne,
+                    ST_GeomFromText(:position)
+                )
+            ) AS distance"
+        )
+    ->groupBy("u.id","i.id", "coord")
+    ->having("distance <= :radius")
+    ->orderBy("distance", "ASC")
+    ->setParameter("position", $wkt)
+    ->setParameter("radius", $radius)
+    ->setFirstResult(($page - 1) * $limit)
+    ->setMaxResults($limit)
+    ->setHint(Paginator::HINT_ENABLE_DISTINCT, true);
+    
+
+    return new Paginator($query, fetchJoinCollection: true)
+        ->setUseOutputWalkers(true)
+    ;
+}
 }

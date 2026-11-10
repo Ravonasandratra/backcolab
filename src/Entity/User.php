@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use LongitudeOne\Spatial\PHP\Types\SpatialInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -70,7 +71,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(["user.show", "user.listing", "user.postable","user.profil"])]
     private ?string $avatar = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255, unique: true)]
     #[Groups(["user.show", "user.listing", "user.postable"])]
     private ?string $phone = null;
 
@@ -96,6 +97,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     #[Groups(["user.postable"])]
     private ?bool $isDemanded = null;
+
 
     /**
      * @var Collection<int, Information>
@@ -134,6 +136,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(nullable: true)]
     private ?bool $isClient = null;
+
 
 
     public function getId(): ?int

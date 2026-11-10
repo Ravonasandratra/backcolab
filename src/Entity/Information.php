@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\InformationRepository;
 use Doctrine\DBAL\Types\Types;
+use LongitudeOne\Spatial\PHP\Types\SpatialInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -58,8 +59,8 @@ class Information
     #[ORM\ManyToOne(inversedBy: 'information')]
     private ?User $user = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $adress = null;
+    #[ORM\Column(type: 'point', nullable: false, index: true)]
+    private ?SpatialInterface $coordonne = null;
 
     public function getId(): ?int
     {
@@ -174,14 +175,14 @@ class Information
         return $this;
     }
 
-    public function getAdress(): ?string
+    public function getCoordonne(): ?SpatialInterface
     {
-        return $this->adress;
+        return $this->coordonne;
     }
 
-    public function setAdress(string $adress): static
+    public function setCoordonne(SpatialInterface $coordonne): static
     {
-        $this->adress = $adress;
+        $this->coordonne = $coordonne;
 
         return $this;
     }

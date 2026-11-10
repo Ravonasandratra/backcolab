@@ -8,15 +8,18 @@ use App\Entity\Profil;
 use App\Entity\Skill;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
+use App\Repository\InformationRepository;
 use App\Repository\SubCategoryRepository;
 use App\Repository\UserRepository;
 use App\Service\ServiceGeneretOtp;
 use Doctrine\ORM\EntityManagerInterface;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use LongitudeOne\Spatial\PHP\Types\Geography\Point;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+
 use function Symfony\Component\Translation\t;
 
 final class DataBaseTestController extends AbstractController
@@ -657,6 +660,29 @@ TEXT;
       return $this->render('test/data_base_test/index.html.twig', [
             'controller_name' => 'Test/DataBaseTestController',
         ]);
+    }
+
+    #[Route('/test/coord', name: 'test_subcat')]
+    public function coord(UserRepository $userRepository, EntityManagerInterface $em, InformationRepository $informationRepository): Response {
+      $users = $userRepository->findAll();
+      $users = $informationRepository->findAll();
+      foreach($users as $user) {
+        $posLat = -rand(188792, 189760)/10000;
+        $posLon = rand(474973, 475079)/10000;
+        $point = new Point($posLon, $posLat);
+        $point->setSrid(4326);
+        $user->setCoordonne($point);
+        $em->persist($user);
+      }
+      $em->flush();
+
+      // $point = new Point(47.5069, -18.8722);
+      // $point->setSrid(4326);
+      // dd($userRepository->findNearByUser($point, 1000));
+
+      return $this->render('test/data_base_test/index.html.twig', [
+        'controller_name' => 'Test/DataBaseTestController',
+      ]);
     }
 
 }

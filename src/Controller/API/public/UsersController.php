@@ -17,9 +17,10 @@ use App\Service\ServiceTokenPasswordReset;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-use libphonenumber\PhoneNumberMatch;
 use libphonenumber\PhoneNumberUtil;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use LongitudeOne\Spatial\PHP\Types\Geography\Point;
+use App\DTO\Users\NearUserDTO;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,7 +28,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\Normalizer\NumberNormalizer;
 
 final class UsersController extends AbstractController
 {
@@ -77,6 +77,37 @@ final class UsersController extends AbstractController
             "limit" => $limit,
             "currentpage" => (int)$page
         ]);
+    }
+
+    #[Route('/api/public/nearuser', name: 'api_users_near_listing', methods: ['GET'])]
+    public function listingNearUser(
+        UserRepository $userRepository,
+        Request $request,
+        CacheManager $cache
+    ): JsonResponse {
+        $positionLat = (float)$request->query->get("lat");
+        $positionLon = (float)$request->query->get("lon");
+        $search = $request->query->get('search');
+        $radius = $request->query->getInt("radius", 1000);
+        $page = $request->query->getInt("page", 1);
+        $limit = 10;
+
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        $point = new Point($positionLon, $positionLat);
+        $point->setSrid(4326);
+        $currentId = $currentUser ? $currentUser->getId() : null;
+
+        
+        $data = $userRepository->findNearByUser(position: $point, userId: $currentId, radius: $radius, page: $page, limit: $limit);
+       
+        return $this->json(
+            $data
+            , 200, [], [
+                "groups" => ["user.listing"],
+                "limit" => $limit,
+                "currentpage" => (int)$page
+            ]);
     }
 
     #[Route('/api/public/user', name: 'api_users_post', methods: ['POST'])]

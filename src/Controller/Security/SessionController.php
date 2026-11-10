@@ -17,8 +17,6 @@ class SessionController extends AbstractController {
 
         $token = $paylod["refres_token"] ?? null;
 
-        
-
         if(!$token) {
             return $this->json(["success" => false], 401, [], [Response::HTTP_BAD_REQUEST]);
         }
